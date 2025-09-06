@@ -1,0 +1,695 @@
+Project structure
+ai-edu-assistant/
+├─ package.json
+├─ next.config.js
+├─ tsconfig.json
+├─ .env.local
+├─ pages/
+│  ├─ index.tsx
+│  └─ api/
+│     └─ generate.ts
+├─ components/
+│  └─ OutputPanel.tsx
+├─ lib/
+│  └─ prompts.ts
+├─ styles/
+│  └─ globals.css
+
+Package.json
+{
+  "name": "ai-edu-assistant",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.2.5",
+    "react": "18.2.0",
+    "react-dom": "18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.11.30",
+    "@types/react": "18.2.66",
+    "typescript": "5.4.5"
+  }
+}
+
+Next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true
+};
+module.exports = nextConfig;
+
+ts.config.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "es2022"],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}
+
+.env.local
+AI_API_KEY=YOUR_API_KEY_HERE
+AI_API_BASE=https://api.openai.com/v1
+AI_MODEL=gpt-4o-mini
+
+lib/prompts.ts
+export type GeneratorType =
+  | "course"
+  | "unit"
+  | "lesson"
+  | "rubric"
+  | "presentation"
+  | "syllabus"
+  | "pbl"
+  | "video_questions";
+
+export const generatorLabels: Record<GeneratorType, string> = {
+  course: "Course generator",
+  unit: "Unit plan generator",
+  lesson: "Lesson plan generator",
+  rubric: "Rubric generator",
+  presentation: "Presentation generator",
+  syllabus: "Syllabus generator",
+  pbl: "Project-based learning generator",
+  video_questions: "Video questions generator"
+};
+
+export const baseStyleGuidelines = `
+- Use clear headings and concise sections.
+- Include measurable objectives and alignment to standards where relevant.
+- Add differentiation, accessibility, and assessment notes.
+- Keep tone professional, supportive, and actionable.
+`;
+
+export const promptTemplates: Record<GeneratorType, (vars: Record<string, string>) => string> = {
+  course: (v) => `
+You are an expert instructional designer. Create a complete course plan.
+
+Context:
+- Subject: ${v.subject || "General"}
+- Audience: ${v.audience || "High school"}
+- Duration: ${v.duration || "8 weeks"}
+- Standards: ${v.standards || "Specify major standards or frameworks"}
+- Outcomes: ${v.outcomes || "List key outcomes"}
+
+Deliverables:
+1) Course overview and rationale
+2) Scope and sequence (weekly or module-based)
+3) Learning objectives mapped to standards
+4) Assessments (diagnostic, formative, summative)
+5) Differentiation and UDL strategies
+6) Tech integration and resources
+7) Feedback, reflection, and iteration plan
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  unit: (v) => `
+Create a standards-aligned unit plan.
+
+Context:
+- Subject: ${v.subject}
+- Grade/Audience: ${v.audience}
+- Duration: ${v.duration || "2-3 weeks"}
+- Essential question(s): ${v.essentialQuestions || "Add 2-3 driving questions"}
+- Standards: ${v.standards}
+
+Deliverables:
+- Unit summary
+- Objectives and success criteria
+- Vocabulary and misconceptions
+- Learning experiences (sequence)
+- Assessments and rubrics
+- Materials, tech, accessibility
+- Extension/intervention options
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  lesson: (v) => `
+Design a lesson plan using a gradual release model.
+
+Context:
+- Subject: ${v.subject}
+- Grade/Audience: ${v.audience}
+- Duration: ${v.duration || "45-60 minutes"}
+- Objective: ${v.objective}
+- Standards: ${v.standards}
+
+Deliverables:
+- Do Now / Hook
+- I Do (Modeling)
+- We Do (Guided practice)
+- You Do (Independent practice)
+- Checks for understanding
+- Differentiation and accommodations
+- Materials and tech
+- Exit ticket and reflection
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  rubric: (v) => `
+Create an analytic rubric.
+
+Context:
+- Task: ${v.task || "Performance task or project"}
+- Criteria count: ${v.criteriaCount || "4-6"}
+- Performance levels: ${v.levels || "Exemplary, Proficient, Developing, Beginning"}
+
+Deliverables:
+- Criteria table with clear descriptors per level
+- Notes for student self-assessment and peer feedback
+- Scoring guidance and conversion
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  presentation: (v) => `
+Generate a slide-by-slide presentation outline.
+
+Context:
+- Topic: ${v.topic || "Topic"}
+- Audience: ${v.audience || "Teachers or students"}
+- Length: ${v.slides || "12-15 slides"}
+- Goal: ${v.goal || "Teach, persuade, or train"}
+
+Deliverables:
+- Slide titles and bullet points
+- Suggested visuals and demos
+- Speaker notes
+- Interactive moments (checks, polls, think-pair-share)
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  syllabus: (v) => `
+Create a professional course syllabus.
+
+Context:
+- Course title: ${v.courseTitle || "Course"}
+- Instructor policies: ${v.policies || "Attendance, grading, late work, integrity"}
+- Materials: ${v.materials || "Textbook(s), software, devices"}
+- Communication: ${v.communication || "Office hours, email, LMS"}
+- Schedule overview: ${v.schedule || "Major units and dates"}
+
+Deliverables:
+- Course overview and objectives
+- Policies and expectations
+- Required materials and tech
+- Weekly outline
+- Assessment breakdown and grading
+- Accessibility and support resources
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  pbl: (v) => `
+Design a PBL unit using the Gold Standard PBL elements.
+
+Context:
+- Driving question: ${v.drivingQuestion || "Compelling, open-ended question"}
+- Real-world audience: ${v.audience || "Community experts or stakeholders"}
+- Duration: ${v.duration || "3-4 weeks"}
+- Standards: ${v.standards || "Key standards"}
+- Public product: ${v.product || "Presentation, prototype, or publication"}
+
+Deliverables:
+- Entry event and need-to-know list
+- Milestones and inquiry activities
+- Roles, collaboration norms, and critique cycles
+- Assessment map and rubric
+- Public product plan and logistics
+- Reflection and revision structures
+
+Style:
+${baseStyleGuidelines}
+`,
+
+  video_questions: (v) => `
+Create time-stamped comprehension and discussion questions for a video.
+
+Context:
+- Platform: ${v.platform || "YouTube or Vimeo"}
+- Video URL: ${v.videoUrl || "Provide URL"}
+- Audience: ${v.audience || "Grade band"}
+- Objectives: ${v.objectives || "Key takeaways"}
+
+Deliverables:
+- Time-stamped questions (factual, conceptual, application)
+- Higher-order prompts and extension tasks
+- Answer key or exemplar responses
+- Accessibility notes (captions, transcripts, alternatives)
+
+Style:
+${baseStyleGuidelines}
+`
+};
+
+component.outputpanel/tsc
+import React, { useRef, useState } from "react";
+
+type Props = {
+  title: string;
+  content: string;
+  onContentChange?: (value: string) => void;
+};
+
+export default function OutputPanel({ title, content, onContentChange }: Props) {
+  const [editable, setEditable] = useState(false);
+  const [text, setText] = useState(content);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    alert("Copied to clipboard.");
+  };
+
+  const handleSave = () => {
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title.replace(/\s+/g, "_").toLowerCase()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const textContent = await file.text();
+    setText(textContent);
+    onContentChange?.(textContent);
+  };
+
+  const toggleEdit = () => setEditable((v) => !v);
+
+  return (
+    <section className="panel">
+      <div className="panel-header">
+        <h3>{title}</h3>
+        <div className="panel-actions">
+          <button onClick={handleCopy} title="Copy">Copy</button>
+          <button onClick={handleSave} title="Save">Save</button>
+          <button onClick={handleUpload} title="Upload">Upload</button>
+          <button onClick={toggleEdit} title="Edit">{editable ? "Lock" : "Edit"}</button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,.md,.json"
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+        </div>
+      </div>
+
+      {editable ? (
+        <textarea
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            onContentChange?.(e.target.value);
+          }}
+          className="editor"
+        />
+      ) : (
+        <pre className="output">{text}</pre>
+      )}
+    </section>
+  );
+}
+pages/api/generates.ts
+import type { NextApiRequest, NextApiResponse } from "next";
+import { promptTemplates, type GeneratorType } from "../../lib/prompts";
+
+type Body = {
+  type: GeneratorType;
+  variables: Record<string, string>;
+};
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+
+  try {
+    const { type, variables } = req.body as Body;
+    if (!type || !promptTemplates[type]) return res.status(400).json({ error: "Invalid type" });
+
+    const prompt = promptTemplates[type](variables);
+
+    // Replace with your preferred AI inference call
+    const apiKey = process.env.AI_API_KEY!;
+    const base = process.env.AI_API_BASE || "https://api.openai.com/v1";
+    const model = process.env.AI_MODEL || "gpt-4o-mini";
+
+    const completion = await fetch(`${base}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: "You are an expert instructional designer and curriculum specialist." },
+          { role: "user", content: prompt }
+        ],
+        temperature: 0.7
+      })
+    });
+
+    if (!completion.ok) {
+      const errText = await completion.text();
+      return res.status(500).json({ error: "AI request failed", details: errText });
+    }
+
+    const data = await completion.json();
+    const text = data.choices?.[0]?.message?.content?.trim() || "No content generated.";
+
+    res.status(200).json({ result: text });
+  } catch (e: any) {
+    res.status(500).json({ error: "Server error", details: e?.message || String(e) });
+  }
+}
+
+pages/index.tsc
+import React, { useMemo, useState } from "react";
+import Head from "next/head";
+import OutputPanel from "../components/OutputPanel";
+import { generatorLabels, type GeneratorType } from "../lib/prompts";
+import "../styles/globals.css";
+
+type FormState = {
+  type: GeneratorType;
+  variables: Record<string, string>;
+};
+
+const generatorFields: Record<GeneratorType, { key: string; label: string; placeholder?: string }[]> = {
+  course: [
+    { key: "subject", label: "Subject" },
+    { key: "audience", label: "Audience/Grade band" },
+    { key: "duration", label: "Duration", placeholder: "e.g., 8 weeks" },
+    { key: "standards", label: "Standards/Frameworks" },
+    { key: "outcomes", label: "Major outcomes" }
+  ],
+  unit: [
+    { key: "subject", label: "Subject" },
+    { key: "audience", label: "Audience/Grade band" },
+    { key: "duration", label: "Duration", placeholder: "e.g., 2-3 weeks" },
+    { key: "essentialQuestions", label: "Essential questions" },
+    { key: "standards", label: "Standards" }
+  ],
+  lesson: [
+    { key: "subject", label: "Subject" },
+    { key: "audience", label: "Audience/Grade band" },
+    { key: "duration", label: "Duration", placeholder: "e.g., 50 minutes" },
+    { key: "objective", label: "Objective" },
+    { key: "standards", label: "Standards" }
+  ],
+  rubric: [
+    { key: "task", label: "Task/Performance" },
+    { key: "criteriaCount", label: "Criteria count", placeholder: "e.g., 5" },
+    { key: "levels", label: "Performance levels", placeholder: "Exemplary, Proficient, Developing, Beginning" }
+  ],
+  presentation: [
+    { key: "topic", label: "Topic" },
+    { key: "audience", label: "Audience" },
+    { key: "slides", label: "Slide count", placeholder: "e.g., 12-15" },
+    { key: "goal", label: "Goal", placeholder: "Teach, persuade, train..." }
+  ],
+  syllabus: [
+    { key: "courseTitle", label: "Course title" },
+    { key: "policies", label: "Policies" },
+    { key: "materials", label: "Materials/Tech" },
+    { key: "communication", label: "Communication" },
+    { key: "schedule", label: "Schedule overview" }
+  ],
+  pbl: [
+    { key: "drivingQuestion", label: "Driving question" },
+    { key: "audience", label: "Real-world audience" },
+    { key: "duration", label: "Duration" },
+    { key: "standards", label: "Standards" },
+    { key: "product", label: "Public product" }
+  ],
+  video_questions: [
+    { key: "platform", label: "Platform", placeholder: "YouTube or Vimeo" },
+    { key: "videoUrl", label: "Video URL" },
+    { key: "audience", label: "Audience/Grade band" },
+    { key: "objectives", label: "Objectives" }
+  ]
+};
+
+export default function Home() {
+  const [form, setForm] = useState<FormState>({
+    type: "course",
+    variables: {}
+  });
+  const [loading, setLoading] = useState(false);
+  const [output, setOutput] = useState("");
+
+  const fields = useMemo(() => generatorFields[form.type], [form.type]);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setOutput("");
+
+    try {
+      const res = await fetch("/api/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setOutput(`Error: ${data.error}\n${data.details || ""}`);
+      } else {
+        setOutput(data.result);
+      }
+    } catch (err: any) {
+      setOutput(`Error: ${String(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <Head>
+        <title>AI Course & Planning Assistant</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+
+      <main className="container">
+        <header className="topbar">
+          <h1>AI Course & Planning Assistant</h1>
+          <p>Generate courses, units, lessons, rubrics, presentations, syllabi, PBL plans, and video question sets.</p>
+        </header>
+
+        <section className="card">
+          <h2>Generator</h2>
+          <form onSubmit={onSubmit} className="grid">
+            <div className="row">
+              <label htmlFor="type"><strong>Type</strong></label>
+              <select
+                id="type"
+                value={form.type}
+                onChange={(e) => {
+                  const type = e.target.value as GeneratorType;
+                  setForm({ type, variables: {} });
+                }}
+              >
+                {Object.entries(generatorLabels).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+
+            {fields.map((f) => (
+              <div className="row" key={f.key}>
+                <label htmlFor={f.key}><strong>{f.label}</strong></label>
+                <input
+                  id={f.key}
+                  type="text"
+                  placeholder={f.placeholder || ""}
+                  value={form.variables[f.key] || ""}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      variables: { ...prev.variables, [f.key]: e.target.value }
+                    }))
+                  }
+                />
+              </div>
+            ))}
+
+            <div className="actions">
+              <button type="submit" disabled={loading}>
+                {loading ? "Generating..." : "Generate"}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section className="card">
+          <h2>Output</h2>
+          <OutputPanel
+            title={generatorLabels[form.type]}
+            content={output || (loading ? "Generating..." : "Your output will appear here.")}
+            onContentChange={setOutput}
+          />
+        </section>
+      </main>
+    </>
+  );
+}
+
+styles/global.css
+:root {
+  --bg: #0f1221;
+  --panel: #161a31;
+  --muted: #aab3c5;
+  --text: #e8ecf4;
+  --accent: #6ad1ff;
+  --accent-2: #8ef6a0;
+  --border: #252a4a;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #__next { height: 100%; }
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 20% -10%, #1a1f3a 0%, var(--bg) 60%) no-repeat, var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.topbar h1 {
+  margin: 0 0 8px 0;
+  letter-spacing: 0.2px;
+}
+
+.topbar p {
+  margin: 0 0 24px 0;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+}
+
+.grid .row {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.grid label {
+  color: var(--muted);
+}
+
+.grid input, .grid select, .editor {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0f1330;
+  color: var(--text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: none;
+  color: #09101f;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button[disabled] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.output {
+  white-space: pre-wrap;
+  background: #0f1330;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  min-height: 200px;
+}
+
+.editor {
+  min-height: 280px;
+  resize: vertical;
+}
